@@ -1,0 +1,25 @@
+{
+  "name": "seabatte_server",
+  "version": "1.0.0",
+  "description": "Server_side_app_for seabattle project.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/6kotov/seabatte_server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/6kotov/seabatte_server/issues"
+  },
+  "homepage": "https://github.com/6kotov/seabatte_server#readme",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "ejs": "^3.0.1",
+    "ejs-lint": "^0.3.0",
+    "express": "^4.17.1"
+  }
+}
