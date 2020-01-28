@@ -16,17 +16,21 @@ const initializePassport = require('./passport-config')
 const mongoose = require('mongoose')
 const Player = require('./models/player')
 const cors = require('cors')
+const CryptoJS = require('crypto-js')
+const salt = process.env.SECRET
+
 
 
 mongoose.connect(process.env.DATABASE_URL, {useNewUrlParser: true,  useUnifiedTopology: true  })
 const db = mongoose.connection
 db.on('error', error => console.error(error))
 db.once('open',async () => {
-    await  Player.deleteMany({x:-1})
+    await  Player.deleteMany({})
     let players = await Player.find()
     console.log("players", players)
     console.log('Connected to Mongoose')
 })
+mongoose.set('useFindAndModify', false);
 
 initializePassport(
               passport,
@@ -38,8 +42,6 @@ app.options('*', cors())
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
 
-    // authorized headers for preflight requests
-    // https://developer.mozilla.org/en-US/docs/Glossary/preflight_request
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
 
@@ -70,6 +72,20 @@ app.use(methodOverride('_method'))
 
 app.post('/start', async (req, res)=>{
 
+
+    // let bytes =  CryptoJS.AES.decrypt(encrypted.toString(), salt)
+    // let decrypted = JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
+    // let request =
+    // let encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), salt)
+
+    const enemy = {status: "wait",
+                    name:"no_enemy_found",
+                    _id: "-1",
+                    enemy_name: "no_enemy_found",
+                    x:-1,
+                    y:-1 }
+
+
     const player = new Player({
         status: 'wait',
         name: req.body.name,
@@ -83,20 +99,20 @@ app.post('/start', async (req, res)=>{
 
     try {
         const newPlayer = await player.save()
-        res.status(201).send(newPlayer)
+        res.status(201).send({enemy:enemy , player: newPlayer})
     } catch (e){
         res.status(400).json({message: e.message})
     }
 })
 
-app.post('/wait',find_enemy ,async  (req,res)=>{
+app.post('/wait', find_enemy ,async  (req,res)=>{
 
     const enemy_id = res.enemy._id
     const enemy_name = res.enemy.name
     const  status = res.enemy.status
 
     try {
-        const updated_Player = await Player.findOneAndUpdate({id:req.body.id},{$set:{
+        const updated_Player = await Player.findByIdAndUpdate({_id:req.body._id}, {$set:{
                 status: status,
                 enemy_id: enemy_id,
                 enemy_name:enemy_name,
@@ -109,36 +125,46 @@ app.post('/wait',find_enemy ,async  (req,res)=>{
 
 })
 
-// app.post('/run', async  (req,res)=>{
-//     try {
-//         Player.findOneAndUpdate({id:req.body.id},{$set:{move_turn: req.body.move_turn,
-//                                                         reply: req.body.reply,
-//                                                         x: req.body.x,
-//                                                         y: req.body.y}})
-//         const enemy = await Player.findOne({id:req.body.enemy_id})
-//         res.status(201).send(enemy)
-//     } catch (err) {
-//         res.status(400).json({ message: err.message })
-//     }
-// })
+
+
+app.post('/run', async  (req,res)=>{
+
+    try {
+      let upd_player =  await Player.findByIdAndUpdate({_id:req.body._id},
+    {$set:{
+            move_turn: req.body.move_turn,
+                reply: req.body.reply,
+                x: req.body.x,
+                y: req.body.y}
+             }, {new:true})
+
+        const enemy = await Player.findById(req.body.enemy_id)
+
+        res.status(201).send({enemy:enemy, player: upd_player})
+    } catch (err) {
+        res.status(400).json({ message: err.message })
+    }
+})
+
+
 
 async function find_enemy(req, res, next){
     const free_enemy = '-1'
     const status = 'run'
-    let enemy = await Player.findOne({enemy_id: free_enemy || req.body._id }).where('_id').ne(req.body._id)
+    let enemy = await Player.findOne().or([{enemy_id:req.body._id},{enemy_id: free_enemy}]).ne('_id', req.body._id)
     if (enemy) {
-        enemy.status = status
-        enemy.enemy_id = req.body._id
-        enemy.enemy_name = req.body.name
-        enemy.move_turn = true
+            enemy.status = status
+            enemy.enemy_id = req.body._id
+            enemy.enemy_name = req.body.name
+            enemy.move_turn = true
 
-        try {
-          await  enemy.save()
-        } catch (err) {
-            console.log({ message: err.message }, enemy)
-        }
+            try {
+              await  enemy.save()
+            } catch (err) {
+                console.log({ message: err.message })
+            }
         } else {
-        enemy = {status: "wait", name:"no_enemy_found", _id: "-1", enemy_name: "no_enemy_found" }
+             enemy = {status: "wait", name:"no_enemy_found", _id: "-1", enemy_name: "no_enemy_found", x:-1, y:-1 }
     }
     res.enemy = enemy
     next()

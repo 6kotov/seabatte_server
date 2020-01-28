@@ -1,9 +1,10 @@
 
 <link rel="stylesheet" href="../public/css/style.css">
-<h1>Hi <%= name%>!!</h1>
+<h1>Hi <%= name%></h1>
 <body>
 <%- include ('./bloks/header.ejs') %>
-<form action="/logout?_method=DELETE" method="post">
+<form action="POST" method="post">
+    <input type="file">
     <button type="submit">Logout</button>
 </form>
 </body>

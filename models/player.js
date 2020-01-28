@@ -21,7 +21,7 @@ const  playerSchema = new mongoose.Schema({
         required:true
     },
     reply:{
-        type: String,
+        type: Object,
         required:true
     },
     x:{
